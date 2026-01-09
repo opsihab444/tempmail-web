@@ -1,325 +1,242 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeZen Temp Mail</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeZen Premium Mail</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
-  <div class="max-w-5xl mx-auto p-4 md:p-8">
-    <!-- Header -->
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">CodeZen Temp Mail</h1>
-        <p class="text-slate-300 mt-1">Generate an inbox, receive emails, and read instantly.</p>
-      </div>
-      <div class="flex gap-2">
-        <button id="btnTheme" class="hidden md:inline-flex px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
-          UI
-        </button>
-      </div>
-    </div>
 
-    <!-- Card: Generator -->
-    <div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6">
-      <div class="flex flex-col md:flex-row md:items-end gap-4">
-        <div class="flex-1">
-          <label class="text-sm text-slate-300">Inbox token</label>
-          <div class="mt-2 flex gap-2">
-            <input id="tokenInput" class="w-full px-4 py-3 rounded-xl bg-slate-950/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g. abc123" />
-            <button id="btnUse" class="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-medium">
-              Use
+<body class="selection:bg-indigo-500/30">
+  <div class="aurora-bg">
+    <div class="aurora-blob blob-1"></div>
+    <div class="aurora-blob blob-2"></div>
+    <div class="aurora-blob blob-3"></div>
+  </div>
+
+  <!-- LANDING VIEW -->
+  <div id="landingView"
+    class="min-h-screen flex flex-col items-center justify-center p-4 relative z-10 transition-all duration-500">
+    <div class="w-full max-w-md animate-fade-in">
+      <!-- Brand -->
+      <div class="text-center mb-10">
+        <div
+          class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl shadow-indigo-500/30 mb-6">
+          <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h1
+          class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+          Temp Mail
+        </h1>
+        <p class="text-slate-400 mt-3 text-lg">Secure, anonymous, disposable email.</p>
+      </div>
+
+      <!-- Card -->
+      <div class="glass-panel rounded-3xl p-8 backdrop-blur-2xl">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Create Inbox</label>
+        <div class="space-y-4">
+          <div class="relative">
+            <input id="tokenInput" type="text"
+              class="w-full glass-input px-5 py-4 rounded-2xl text-lg placeholder-slate-500 pl-12"
+              placeholder="Enter username" autocomplete="off" spellcheck="false">
+            <svg class="w-5 h-5 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button id="btnGen"
+              class="glass-button px-4 py-3 rounded-2xl text-slate-300 font-medium flex items-center justify-center gap-2 hover:bg-white/5 active:scale-95 transition-all">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Random
             </button>
-          </div>
-          <p class="text-xs text-slate-400 mt-2">Tip: you can also use plus style like <span class="font-mono">user+abc123@...</span></p>
-        </div>
-
-        <div class="flex gap-2">
-          <button id="btnGen" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
-            Generate
-          </button>
-          <button id="btnRefresh" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      <!-- Active inbox -->
-      <div class="mt-4 rounded-xl bg-slate-950/50 border border-white/10 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div class="min-w-0">
-          <div class="text-xs text-slate-400">Active email</div>
-          <div id="activeEmail" class="mt-1 font-mono text-sm break-all">—</div>
-        </div>
-        <div class="flex gap-2">
-          <button id="btnCopyEmail" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-medium">
-            Copy
-          </button>
-          <button id="btnStop" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
-            Stop auto-refresh
-          </button>
-        </div>
-      </div>
-
-      <div class="mt-3 text-xs text-slate-400">
-        Status: <span id="statusText">Idle</span>
-      </div>
-    </div>
-
-    <!-- Main: List + Preview -->
-    <div class="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
-      <!-- Inbox list -->
-      <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div class="flex items-center justify-between">
-          <h2 class="font-semibold">Inbox</h2>
-          <div class="text-xs text-slate-400"><span id="countText">0</span> messages</div>
-        </div>
-
-        <div id="emptyState" class="mt-6 text-sm text-slate-300">
-          No emails yet. Send a test email to the active address.
-        </div>
-
-        <div id="list" class="mt-3 space-y-2"></div>
-      </div>
-
-      <!-- Message preview -->
-      <div class="lg:col-span-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <h2 class="font-semibold">Message</h2>
-            <p class="text-xs text-slate-400 mt-1">Select a message to view details.</p>
-          </div>
-          <div class="flex gap-2">
-            <button id="btnCopyOTP" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
-              Copy OTP
+            <button id="btnUse"
+              class="px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold flex items-center justify-center gap-2 shadow-xl shadow-indigo-900/50 active:scale-95 transition-all">
+              Access
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </button>
           </div>
         </div>
 
-        <div class="mt-4 space-y-3">
-          <div class="rounded-xl bg-slate-950/50 border border-white/10 p-4">
-            <div class="text-xs text-slate-400">Subject</div>
-            <div id="msgSubject" class="mt-1 font-medium">—</div>
-            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div class="min-w-0">
-                <div class="text-xs text-slate-400">From</div>
-                <div id="msgFrom" class="mt-1 break-all">—</div>
-              </div>
-              <div class="min-w-0">
-                <div class="text-xs text-slate-400">To</div>
-                <div id="msgTo" class="mt-1 break-all">—</div>
-              </div>
-            </div>
-            <div class="mt-3 text-xs text-slate-400">Received: <span id="msgTime">—</span></div>
-          </div>
-
-          <div class="rounded-xl bg-slate-950/50 border border-white/10 p-4">
-            <div class="flex gap-2">
-              <button data-tab="text" class="tabBtn px-3 py-2 rounded-xl bg-indigo-600 font-medium">Text</button>
-              <button data-tab="html" class="tabBtn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">HTML</button>
-            </div>
-            <div id="msgBody" class="mt-4 text-sm whitespace-pre-wrap text-slate-100">—</div>
-            <iframe id="msgFrame" class="mt-4 w-full h-80 rounded-xl border border-white/10 hidden bg-white"></iframe>
-          </div>
+        <div class="mt-8 pt-6 border-t border-white/5 text-center">
+          <p class="text-xs text-slate-500">
+            Pro tip: You can use <span class="font-mono text-indigo-400 bg-indigo-500/10 px-1 rounded">user+tag</span>
+            formatted addresses.
+          </p>
         </div>
       </div>
-    </div>
 
-    <div class="mt-10 text-xs text-slate-500">
-      Built with Cloudflare Workers + D1.
+      <footer class="mt-12 text-center text-slate-600 text-sm">
+        &copy; 2024 CodeZen. All rights reserved.
+      </footer>
     </div>
   </div>
 
-<script>
-  // === CONFIG ===
-  // If your API is on same origin (recommended via route: ui.domain/api/* -> worker), keep API_BASE = ""
-  // Otherwise set: "https://codezen-temp.<your>.workers.dev"
-  const API_BASE = "";
-  const DOMAIN = "codezen.indevs.in"; // email domain
-
-  // === STATE ===
-  let activeToken = "";
-  let activeTab = "text";
-  let poll = null;
-  let lastMessageIds = new Set();
-  let selectedMessage = null;
-
-  // === UI helpers ===
-  const $ = (id) => document.getElementById(id);
-  const status = (t) => $("statusText").textContent = t;
-
-  function randToken(len = 8) {
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let out = "";
-    crypto.getRandomValues(new Uint32Array(len)).forEach(n => out += chars[n % chars.length]);
-    return out;
-  }
-
-  function activeEmail() {
-    if (!activeToken) return "—";
-    return `${activeToken}@${DOMAIN}`;
-  }
-
-  async function copy(text) {
-    await navigator.clipboard.writeText(text);
-    toast("Copied!");
-  }
-
-  function toast(msg) {
-    status(msg);
-    setTimeout(() => status(activeToken ? "Listening…" : "Idle"), 1200);
-  }
-
-  function fmtTime(ms) {
-    try { return new Date(ms).toLocaleString(); } catch { return String(ms); }
-  }
-
-  // === API ===
-  async function apiGet(path) {
-    const res = await fetch(API_BASE + path, { method: "GET" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return await res.json();
-  }
-
-  async function loadInbox() {
-    if (!activeToken) return;
-    status("Fetching inbox…");
-    const data = await apiGet(`/api/inbox/${encodeURIComponent(activeToken)}`);
-    const messages = data.messages || [];
-
-    $("countText").textContent = messages.length;
-    $("emptyState").classList.toggle("hidden", messages.length > 0);
-
-    // render list
-    const list = $("list");
-    list.innerHTML = "";
-    messages.forEach(m => {
-      const isNew = !lastMessageIds.has(m.id);
-      const el = document.createElement("button");
-      el.className =
-        "w-full text-left rounded-xl border border-white/10 bg-slate-950/40 hover:bg-slate-950/60 p-3 transition";
-      el.innerHTML = `
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-sm font-medium truncate">${escapeHtml(m.subject || "(no subject)")}</div>
-            <div class="text-xs text-slate-400 truncate mt-1">${escapeHtml(m.mail_from || "")}</div>
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboardView" class="hidden min-h-screen flex flex-col transition-all duration-500">
+    <!-- Header -->
+    <nav class="glass-heavy sticky top-0 z-40 px-4 md:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <button id="btnBack"
+          class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors tooltip"
+          title="Change Inbox">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+          </svg>
+        </button>
+        <div class="flex flex-col">
+          <span class="text-xs text-slate-500 font-medium tracking-wider uppercase">Active Inbox</span>
+          <div class="flex items-center gap-2 group cursor-pointer" id="btnCopyEmail" title="Click to Copy">
+            <h2 id="activeEmailDisplay"
+              class="text-lg font-mono text-indigo-300 font-semibold group-hover:text-white transition-colors">...</h2>
+            <svg class="w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
           </div>
-          <div class="text-xs text-slate-400 whitespace-nowrap">${fmtTime(m.received_at).split(",")[0]}</div>
         </div>
-        ${isNew ? '<div class="mt-2 text-xs text-emerald-400">New</div>' : ""}
-      `;
-      el.onclick = () => loadMessage(m.id);
-      list.appendChild(el);
-    });
+      </div>
 
-    // update "new" tracking
-    lastMessageIds = new Set(messages.map(m => m.id));
-    status("Listening…");
-  }
+      <div class="flex items-center gap-3">
+        <button id="btnRefresh"
+          class="glass-button w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-white active:scale-95">
+          <svg id="refreshIcon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+        <button id="btnStop"
+          class="hidden md:flex glass-button px-4 h-10 rounded-xl items-center gap-2 text-sm font-medium text-slate-300 hover:text-white active:scale-95">
+          <svg id="btnStopIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Pause</span>
+        </button>
+      </div>
+    </nav>
 
-  async function loadMessage(id) {
-    status("Loading message…");
-    const data = await apiGet(`/api/message/${encodeURIComponent(id)}`);
-    selectedMessage = data.message;
+    <!-- Main Content -->
+    <main
+      class="flex-1 p-4 md:p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-80px)] overflow-hidden">
 
-    $("msgSubject").textContent = selectedMessage.subject || "(no subject)";
-    $("msgFrom").textContent = selectedMessage.mail_from || "";
-    $("msgTo").textContent = selectedMessage.mail_to || "";
-    $("msgTime").textContent = fmtTime(selectedMessage.received_at);
+      <!-- INBOX LIST -->
+      <div class="lg:col-span-4 flex flex-col glass rounded-3xl overflow-hidden h-full animate-enter">
+        <div
+          class="p-5 border-b border-white/10 flex items-center justify-between bg-white/5 backdrop-blur-md sticky top-0 z-10">
+          <h3 class="font-semibold text-lg flex items-center gap-2">
+            Inbox
+            <span id="inboxCount" class="px-2 py-0.5 rounded-md bg-white/10 text-xs text-slate-400 font-mono">0</span>
+          </h3>
+        </div>
 
-    renderBody();
-    status("Listening…");
-  }
+        <div class="flex-1 overflow-y-auto p-3 custom-scrollbar relative">
+          <div id="msgList">
+            <!-- Items injected here -->
+          </div>
 
-  function renderBody() {
-    const text = selectedMessage?.text || "";
-    const html = selectedMessage?.html || "";
+          <!-- Empty State -->
+          <div id="emptyInboxState"
+            class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-500">
+            <div class="w-20 h-20 rounded-full bg-slate-900/50 flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <p class="text-sm">Waiting for emails...</p>
+            <p class="text-xs mt-2 opacity-50">Refresh auto-runs every 7s</p>
+          </div>
+        </div>
+      </div>
 
-    $("msgFrame").classList.add("hidden");
-    $("msgBody").classList.remove("hidden");
+      <!-- MESSAGE VIEW -->
+      <div
+        class="lg:col-span-8 glass rounded-3xl overflow-hidden h-full flex flex-col animate-enter delay-100 relative">
 
-    if (activeTab === "text") {
-      $("msgBody").textContent = text || "No text body yet.";
-    } else {
-      if (html) {
-        $("msgBody").classList.add("hidden");
-        const frame = $("msgFrame");
-        frame.classList.remove("hidden");
-        // basic sandbox
-        frame.setAttribute("sandbox", "allow-same-origin");
-        frame.srcdoc = html;
-      } else {
-        $("msgBody").textContent = "No HTML body yet.";
-      }
-    }
-  }
+        <!-- Placeholder when no msg selected -->
+        <div id="messagePlaceholder"
+          class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 z-10 bg-[#020617]/50 backdrop-blur-sm">
+          <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <p class="text-lg font-light">Select a message to read</p>
+        </div>
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
+        <!-- Message Content -->
+        <div id="messageContent" class="hidden flex flex-col h-full bg-[#0b112180]">
+          <!-- Header -->
+          <div class="p-6 border-b border-white/10 bg-white/5">
+            <div class="flex items-start justify-between gap-4">
+              <h2 id="messageSubject" class="text-xl md:text-2xl font-bold text-white leading-tight">Subject Line</h2>
+              <div class="flex gap-2 shrink-0">
+                <button id="btnCopyOTP"
+                  class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 text-xs font-medium hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/30">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy OTP
+                </button>
+              </div>
+            </div>
 
-  // === Controls ===
-  $("btnGen").onclick = () => {
-    $("tokenInput").value = randToken(10);
-    $("btnUse").click();
-  };
+            <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <div class="flex items-center gap-2 text-slate-400">
+                <span class="text-xs uppercase tracking-wide opacity-50">From</span>
+                <span id="messageFrom" class="text-slate-200 font-medium">sender@example.com</span>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400">
+                <span class="text-xs uppercase tracking-wide opacity-50">To</span>
+                <span id="messageTo" class="text-slate-200">me@codezen.indevs.in</span>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 ml-auto">
+                <svg class="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="messageTime">12:30 PM</span>
+              </div>
+            </div>
 
-  $("btnUse").onclick = () => {
-    const t = $("tokenInput").value.trim().toLowerCase();
-    if (!t) return toast("Enter a token first");
-    activeToken = t;
-    $("activeEmail").textContent = activeEmail();
-    status("Listening…");
-    lastMessageIds = new Set();
-    loadInbox().catch(e => status("Error: " + e.message));
-    startPoll();
-  };
+            <!-- Tab Switcher -->
+            <div class="mt-6 flex bg-black/20 p-1 rounded-2xl w-fit border border-white/5">
+              <button id="tabText"
+                class="px-4 py-2 rounded-xl bg-indigo-600/80 text-white text-sm font-medium transition-all shadow-lg shadow-indigo-500/20">Text</button>
+              <button id="tabHtml"
+                class="px-4 py-2 rounded-xl hover:bg-white/5 text-slate-400 text-sm font-medium transition-all">HTML</button>
+            </div>
+          </div>
 
-  $("btnRefresh").onclick = () => loadInbox().catch(e => status("Error: " + e.message));
+          <!-- Body -->
+          <div class="flex-1 overflow-auto bg-[#0f172a] p-1 relative">
+            <div id="messageBodyText" class="p-6 text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">
+              <!-- Text content -->
+            </div>
+            <iframe id="messageFrame" class="w-full h-full bg-white hidden border-none"
+              sandbox="allow-same-origin"></iframe>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 
-  $("btnCopyEmail").onclick = () => {
-    if (!activeToken) return toast("No active inbox");
-    copy(activeEmail());
-  };
-
-  $("btnStop").onclick = () => {
-    if (poll) {
-      clearInterval(poll);
-      poll = null;
-      $("btnStop").textContent = "Start auto-refresh";
-      status("Auto-refresh stopped");
-    } else {
-      startPoll();
-      $("btnStop").textContent = "Stop auto-refresh";
-    }
-  };
-
-  function startPoll() {
-    if (poll) clearInterval(poll);
-    poll = setInterval(() => loadInbox().catch(() => {}), 7000);
-  }
-
-  document.querySelectorAll(".tabBtn").forEach(btn => {
-    btn.onclick = () => {
-      activeTab = btn.dataset.tab;
-      document.querySelectorAll(".tabBtn").forEach(b => {
-        b.className = "tabBtn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10";
-      });
-      btn.className = "tabBtn px-3 py-2 rounded-xl bg-indigo-600 font-medium";
-      if (selectedMessage) renderBody();
-    };
-  });
-
-  $("btnCopyOTP").onclick = () => {
-    const text = (selectedMessage?.text || "") + "\n" + (selectedMessage?.html || "");
-    const m = text.match(/\b(\d{4,8})\b/);
-    if (!m) return toast("No OTP found");
-    copy(m[1]);
-  };
-
-  // Init
-  status("Idle");
-</script>
+  <!-- Scripts -->
+  <script src="script.js"></script>
 </body>
+
 </html>
