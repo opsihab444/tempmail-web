@@ -94,74 +94,128 @@ const activateToken = (token, save = true) => {
     startPolling();
 };
 
+const CACHE_KEY = "tempmail_msg_cache";
+
+const renderSkeleton = () => {
+    const list = el("msgList");
+    // Don't nuke list if we have content, just show loadeer indicator nearby if needed?
+    // Actually for first load, nuking is fine.
+    if (list.childElementCount > 0 && !list.querySelector('.skeleton')) return;
+
+    list.innerHTML = "";
+    for (let i = 0; i < 5; i++) {
+        const div = document.createElement("div");
+        div.className = "w-full p-4 rounded-2xl mb-2 border border-white/5 bg-white/5";
+        div.innerHTML = `
+            <div class="flex justify-between gap-4">
+                <div class="flex-1 space-y-2">
+                    <div class="h-4 w-3/4 skeleton rounded"></div>
+                    <div class="h-3 w-1/2 skeleton rounded opacity-60"></div>
+                </div>
+                <div class="h-3 w-12 skeleton rounded opacity-40"></div>
+            </div>
+        `;
+        list.appendChild(div);
+    }
+};
+
 const loadInbox = async () => {
     if (!activeToken) return;
-    
-    const isFirstLoad = lastMessageIds.size === 0;
+
+    // 1. CACHE FIRST (Stale-while-revalidate)
+    const cachedRaw = localStorage.getItem(CACHE_KEY);
+    if (cachedRaw && lastMessageIds.size === 0) {
+        try {
+            const cachedMessages = JSON.parse(cachedRaw);
+            if (Array.isArray(cachedMessages) && cachedMessages.length > 0) {
+                renderMessages(cachedMessages, true); // true = isCached
+            } else {
+                renderSkeleton();
+            }
+        } catch { renderSkeleton(); }
+    } else if (lastMessageIds.size === 0) {
+        renderSkeleton();
+    }
 
     try {
-        const data = await apiGet(`/api/inbox/${encodeURIComponent(activeToken)}`);
+        // Add timestamp to prevent request caching by browser/sw
+        const data = await apiGet(`/api/inbox/${encodeURIComponent(activeToken)}?_=${Date.now()}`);
         const messages = data.messages || [];
 
-        el("inboxCount").textContent = messages.length;
-        el("emptyInboxState").classList.toggle("hidden", messages.length > 0);
-        
-        const list = el("msgList");
+        // Update Cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(messages));
 
-        // Simple diff: if count changed or IDs don't match exactly, rebuild.
-        // Otherwise, just update styles (handled by updateSelection).
-        const currentIds = new Set(messages.map(m => m.id));
-        const hasContentChanged = messages.length !== lastMessageIds.size || 
-                                  !messages.every(m => lastMessageIds.has(m.id));
-
-        if (hasContentChanged) {
-            list.innerHTML = "";
-            messages.forEach((m, idx) => {
-                const isNew = !lastMessageIds.has(m.id) && !isFirstLoad; 
-                const btn = document.createElement("button");
-                btn.id = `msg-btn-${m.id}`;
-                btn.onclick = () => loadMessage(m.id);
-                
-                // Base classes
-                const baseClass = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group";
-                // Determine initial select state (if rebuilding list)
-                const isSelected = selectedMessage && selectedMessage.id === m.id;
-                const activeClasses = isSelected 
-                    ? "bg-white/10 border-indigo-500/30" 
-                    : "bg-slate-900/40 border-transparent hover:bg-slate-800/50";
-                
-                btn.className = `${baseClass} ${activeClasses}`;
-                
-                // Animation for new items only
-                if (isNew || isFirstLoad) {
-                    btn.style.animation = `fadeIn 0.4s ease forwards ${Math.min(idx * 0.05, 0.5)}s`;
-                    btn.style.opacity = '0';
-                }
-
-                btn.innerHTML = `
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                 ${isNew ? `<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>` : ""}
-                                <h4 class="font-medium text-slate-200 truncate group-hover:text-white transition-colors text-sm">${escapeHtml(m.subject || "(No Subject)")}</h4>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-1 truncate group-hover:text-slate-300 transition-colors capitalize">${escapeHtml(m.mail_from || "Unknown")}</p>
-                        </div>
-                        <span class="text-[10px] text-slate-500 whitespace-nowrap font-mono tracking-tight">${formatDate(m.received_at).split(",")[1] || ""}</span>
-                    </div>
-                `;
-                list.appendChild(btn);
-            });
-            lastMessageIds = currentIds;
-        } else {
-             // Just update selection style safely if message count is same
-             updateSelectionStyle();
-        }
+        // Render Real Data
+        renderMessages(messages);
 
     } catch (e) {
         console.error(e);
-        // Don't toast on background poll errors to avoid annoyance
         if (!pollInterval) showToast("Connection error", "error");
+    }
+};
+
+const renderMessages = (messages, isCached = false) => {
+    el("inboxCount").textContent = messages.length;
+    el("emptyInboxState").classList.toggle("hidden", messages.length > 0);
+
+    const list = el("msgList");
+
+    // If we have cached data displayed, and new data is empty, clear it.
+    if (messages.length === 0) {
+        if (list.innerHTML.includes("skeleton")) list.innerHTML = "";
+        // If we had cached messages but now real data is empty, we must clear.
+        if (!isCached && list.childElementCount > 0) list.innerHTML = "";
+        return;
+    }
+
+    // Smart Diffing
+    const currentIds = new Set(messages.map(m => m.id));
+    const hasContentChanged = messages.length !== lastMessageIds.size ||
+        !messages.every(m => lastMessageIds.has(m.id));
+
+    // If skeleton is present, force redraw
+    const hasSkeleton = list.querySelector(".skeleton");
+
+    if (hasContentChanged || hasSkeleton) {
+        list.innerHTML = "";
+        messages.forEach((m, idx) => {
+            const isNew = !lastMessageIds.has(m.id) && !isCached;
+            const btn = document.createElement("button");
+            btn.id = `msg-btn-${m.id}`;
+            btn.onclick = () => loadMessage(m.id);
+
+            const baseClass = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group will-change-transform";
+            const isSelected = selectedMessage && selectedMessage.id === m.id;
+            const activeClasses = isSelected
+                ? "bg-white/10 border-indigo-500/30"
+                : "bg-slate-900/40 border-transparent hover:bg-slate-800/50";
+
+            btn.className = `${baseClass} ${activeClasses}`;
+
+            // Anim: Only fade in if it's not from cache (instant) OR if it's a new item found live
+            if (!isCached && (isNew || hasSkeleton)) {
+                btn.style.animation = `fadeIn 0.4s ease forwards ${Math.min(idx * 0.05, 0.5)}s`;
+                btn.style.opacity = '0';
+            }
+
+            btn.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                                ${isNew ? `<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>` : ""}
+                            <h4 class="font-medium text-slate-200 truncate group-hover:text-white transition-colors text-sm">${escapeHtml(m.subject || "(No Subject)")}</h4>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1 truncate group-hover:text-slate-300 transition-colors capitalize">${escapeHtml(m.mail_from || "Unknown")}</p>
+                    </div>
+                    <span class="text-[10px] text-slate-500 whitespace-nowrap font-mono tracking-tight text-right opacity-60">${formatDate(m.received_at).split(",")[1] || ""}</span>
+                </div>
+            `;
+            list.appendChild(btn);
+        });
+
+        lastMessageIds = currentIds;
+    } else {
+        updateSelectionStyle();
     }
 };
 
@@ -171,9 +225,9 @@ const updateSelectionStyle = () => {
     allBtns.forEach(btn => {
         // Reset to default
         if (btn.id === `msg-btn-${selectedMessage.id}`) {
-             btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-white/10 border-indigo-500/30";
+            btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-white/10 border-indigo-500/30";
         } else {
-             btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-slate-900/40 border-transparent hover:bg-slate-800/50";
+            btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-slate-900/40 border-transparent hover:bg-slate-800/50";
         }
     });
 };
@@ -182,7 +236,7 @@ const loadMessage = async (id) => {
     // Smoother visual transition
     const contentDiv = el("messageContent");
     const placeholder = el("messagePlaceholder");
-    
+
     // Immediate UI feedback
     if (selectedMessage && selectedMessage.id === id) return; // Already loaded
 
@@ -195,11 +249,11 @@ const loadMessage = async (id) => {
     contentDiv.classList.remove("hidden");
     // Only reduce opacity slightly to indicate busy, not full flash
     contentDiv.classList.add("opacity-60", "pointer-events-none");
-    
+
     try {
         const data = await apiGet(`/api/message/${encodeURIComponent(id)}`);
         selectedMessage = data.message;
-        
+
         // Populate details
         el("messageSubject").textContent = selectedMessage.subject || "(No Subject)";
         el("messageFrom").textContent = selectedMessage.mail_from || "Unknown";
@@ -207,7 +261,7 @@ const loadMessage = async (id) => {
         el("messageTime").textContent = formatDate(selectedMessage.received_at);
 
         renderBody();
-        
+
     } catch (e) {
         showToast("Failed to load message", "error");
     } finally {
