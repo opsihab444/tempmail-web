@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeZen Temp Mail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <div class="max-w-5xl mx-auto p-4 md:p-8">
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">CodeZen Temp Mail</h1>
+        <p class="text-slate-300 mt-1">Generate an inbox, receive emails, and read instantly.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="btnTheme" class="hidden md:inline-flex px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+          UI
+        </button>
+      </div>
+    </div>
+
+    <!-- Card: Generator -->
+    <div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6">
+      <div class="flex flex-col md:flex-row md:items-end gap-4">
+        <div class="flex-1">
+          <label class="text-sm text-slate-300">Inbox token</label>
+          <div class="mt-2 flex gap-2">
+            <input id="tokenInput" class="w-full px-4 py-3 rounded-xl bg-slate-950/60 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="e.g. abc123" />
+            <button id="btnUse" class="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-medium">
+              Use
+            </button>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Tip: you can also use plus style like <span class="font-mono">user+abc123@...</span></p>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnGen" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+            Generate
+          </button>
+          <button id="btnRefresh" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Active inbox -->
+      <div class="mt-4 rounded-xl bg-slate-950/50 border border-white/10 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="min-w-0">
+          <div class="text-xs text-slate-400">Active email</div>
+          <div id="activeEmail" class="mt-1 font-mono text-sm break-all">—</div>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnCopyEmail" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-medium">
+            Copy
+          </button>
+          <button id="btnStop" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+            Stop auto-refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-3 text-xs text-slate-400">
+        Status: <span id="statusText">Idle</span>
+      </div>
+    </div>
+
+    <!-- Main: List + Preview -->
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <!-- Inbox list -->
+      <div class="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold">Inbox</h2>
+          <div class="text-xs text-slate-400"><span id="countText">0</span> messages</div>
+        </div>
+
+        <div id="emptyState" class="mt-6 text-sm text-slate-300">
+          No emails yet. Send a test email to the active address.
+        </div>
+
+        <div id="list" class="mt-3 space-y-2"></div>
+      </div>
+
+      <!-- Message preview -->
+      <div class="lg:col-span-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="font-semibold">Message</h2>
+            <p class="text-xs text-slate-400 mt-1">Select a message to view details.</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="btnCopyOTP" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+              Copy OTP
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div class="rounded-xl bg-slate-950/50 border border-white/10 p-4">
+            <div class="text-xs text-slate-400">Subject</div>
+            <div id="msgSubject" class="mt-1 font-medium">—</div>
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <div class="text-xs text-slate-400">From</div>
+                <div id="msgFrom" class="mt-1 break-all">—</div>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs text-slate-400">To</div>
+                <div id="msgTo" class="mt-1 break-all">—</div>
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-slate-400">Received: <span id="msgTime">—</span></div>
+          </div>
+
+          <div class="rounded-xl bg-slate-950/50 border border-white/10 p-4">
+            <div class="flex gap-2">
+              <button data-tab="text" class="tabBtn px-3 py-2 rounded-xl bg-indigo-600 font-medium">Text</button>
+              <button data-tab="html" class="tabBtn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">HTML</button>
+            </div>
+            <div id="msgBody" class="mt-4 text-sm whitespace-pre-wrap text-slate-100">—</div>
+            <iframe id="msgFrame" class="mt-4 w-full h-80 rounded-xl border border-white/10 hidden bg-white"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 text-xs text-slate-500">
+      Built with Cloudflare Workers + D1.
+    </div>
+  </div>
+
+<script>
+  // === CONFIG ===
+  // If your API is on same origin (recommended via route: ui.domain/api/* -> worker), keep API_BASE = ""
+  // Otherwise set: "https://codezen-temp.<your>.workers.dev"
+  const API_BASE = "";
+  const DOMAIN = "codezen.indevs.in"; // email domain
+
+  // === STATE ===
+  let activeToken = "";
+  let activeTab = "text";
+  let poll = null;
+  let lastMessageIds = new Set();
+  let selectedMessage = null;
+
+  // === UI helpers ===
+  const $ = (id) => document.getElementById(id);
+  const status = (t) => $("statusText").textContent = t;
+
+  function randToken(len = 8) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let out = "";
+    crypto.getRandomValues(new Uint32Array(len)).forEach(n => out += chars[n % chars.length]);
+    return out;
+  }
+
+  function activeEmail() {
+    if (!activeToken) return "—";
+    return `${activeToken}@${DOMAIN}`;
+  }
+
+  async function copy(text) {
+    await navigator.clipboard.writeText(text);
+    toast("Copied!");
+  }
+
+  function toast(msg) {
+    status(msg);
+    setTimeout(() => status(activeToken ? "Listening…" : "Idle"), 1200);
+  }
+
+  function fmtTime(ms) {
+    try { return new Date(ms).toLocaleString(); } catch { return String(ms); }
+  }
+
+  // === API ===
+  async function apiGet(path) {
+    const res = await fetch(API_BASE + path, { method: "GET" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  async function loadInbox() {
+    if (!activeToken) return;
+    status("Fetching inbox…");
+    const data = await apiGet(`/api/inbox/${encodeURIComponent(activeToken)}`);
+    const messages = data.messages || [];
+
+    $("countText").textContent = messages.length;
+    $("emptyState").classList.toggle("hidden", messages.length > 0);
+
+    // render list
+    const list = $("list");
+    list.innerHTML = "";
+    messages.forEach(m => {
+      const isNew = !lastMessageIds.has(m.id);
+      const el = document.createElement("button");
+      el.className =
+        "w-full text-left rounded-xl border border-white/10 bg-slate-950/40 hover:bg-slate-950/60 p-3 transition";
+      el.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-sm font-medium truncate">${escapeHtml(m.subject || "(no subject)")}</div>
+            <div class="text-xs text-slate-400 truncate mt-1">${escapeHtml(m.mail_from || "")}</div>
+          </div>
+          <div class="text-xs text-slate-400 whitespace-nowrap">${fmtTime(m.received_at).split(",")[0]}</div>
+        </div>
+        ${isNew ? '<div class="mt-2 text-xs text-emerald-400">New</div>' : ""}
+      `;
+      el.onclick = () => loadMessage(m.id);
+      list.appendChild(el);
+    });
+
+    // update "new" tracking
+    lastMessageIds = new Set(messages.map(m => m.id));
+    status("Listening…");
+  }
+
+  async function loadMessage(id) {
+    status("Loading message…");
+    const data = await apiGet(`/api/message/${encodeURIComponent(id)}`);
+    selectedMessage = data.message;
+
+    $("msgSubject").textContent = selectedMessage.subject || "(no subject)";
+    $("msgFrom").textContent = selectedMessage.mail_from || "";
+    $("msgTo").textContent = selectedMessage.mail_to || "";
+    $("msgTime").textContent = fmtTime(selectedMessage.received_at);
+
+    renderBody();
+    status("Listening…");
+  }
+
+  function renderBody() {
+    const text = selectedMessage?.text || "";
+    const html = selectedMessage?.html || "";
+
+    $("msgFrame").classList.add("hidden");
+    $("msgBody").classList.remove("hidden");
+
+    if (activeTab === "text") {
+      $("msgBody").textContent = text || "No text body yet.";
+    } else {
+      if (html) {
+        $("msgBody").classList.add("hidden");
+        const frame = $("msgFrame");
+        frame.classList.remove("hidden");
+        // basic sandbox
+        frame.setAttribute("sandbox", "allow-same-origin");
+        frame.srcdoc = html;
+      } else {
+        $("msgBody").textContent = "No HTML body yet.";
+      }
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // === Controls ===
+  $("btnGen").onclick = () => {
+    $("tokenInput").value = randToken(10);
+    $("btnUse").click();
+  };
+
+  $("btnUse").onclick = () => {
+    const t = $("tokenInput").value.trim().toLowerCase();
+    if (!t) return toast("Enter a token first");
+    activeToken = t;
+    $("activeEmail").textContent = activeEmail();
+    status("Listening…");
+    lastMessageIds = new Set();
+    loadInbox().catch(e => status("Error: " + e.message));
+    startPoll();
+  };
+
+  $("btnRefresh").onclick = () => loadInbox().catch(e => status("Error: " + e.message));
+
+  $("btnCopyEmail").onclick = () => {
+    if (!activeToken) return toast("No active inbox");
+    copy(activeEmail());
+  };
+
+  $("btnStop").onclick = () => {
+    if (poll) {
+      clearInterval(poll);
+      poll = null;
+      $("btnStop").textContent = "Start auto-refresh";
+      status("Auto-refresh stopped");
+    } else {
+      startPoll();
+      $("btnStop").textContent = "Stop auto-refresh";
+    }
+  };
+
+  function startPoll() {
+    if (poll) clearInterval(poll);
+    poll = setInterval(() => loadInbox().catch(() => {}), 7000);
+  }
+
+  document.querySelectorAll(".tabBtn").forEach(btn => {
+    btn.onclick = () => {
+      activeTab = btn.dataset.tab;
+      document.querySelectorAll(".tabBtn").forEach(b => {
+        b.className = "tabBtn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10";
+      });
+      btn.className = "tabBtn px-3 py-2 rounded-xl bg-indigo-600 font-medium";
+      if (selectedMessage) renderBody();
+    };
+  });
+
+  $("btnCopyOTP").onclick = () => {
+    const text = (selectedMessage?.text || "") + "\n" + (selectedMessage?.html || "");
+    const m = text.match(/\b(\d{4,8})\b/);
+    if (!m) return toast("No OTP found");
+    copy(m[1]);
+  };
+
+  // Init
+  status("Idle");
+</script>
+</body>
+</html>
