@@ -1,0 +1,12 @@
+name = "codezen-temp"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "temp_mail_db"
+database_id = "c93f182a-8ca1-46bb-8823-c36b6b467975"
+preview_database_id = "DB"
+
+[observability]
+enabled = true

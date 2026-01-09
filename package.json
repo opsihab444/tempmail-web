@@ -1,0 +1,8 @@
+{
+    "name": "tempmail-worker",
+    "version": "1.0.0",
+    "main": "worker.js",
+    "dependencies": {
+        "postal-mime": "^2.2.0"
+    }
+}
