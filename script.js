@@ -96,7 +96,7 @@ const activateToken = (token, save = true) => {
 
 const loadInbox = async () => {
     if (!activeToken) return;
-
+    
     const isFirstLoad = lastMessageIds.size === 0;
 
     try {
@@ -105,52 +105,101 @@ const loadInbox = async () => {
 
         el("inboxCount").textContent = messages.length;
         el("emptyInboxState").classList.toggle("hidden", messages.length > 0);
-
+        
         const list = el("msgList");
-        list.innerHTML = "";
 
-        messages.forEach((m, idx) => {
-            const isNew = !lastMessageIds.has(m.id) && !isFirstLoad;
-            const isSelected = selectedMessage && selectedMessage.id === m.id;
+        // Simple diff: if count changed or IDs don't match exactly, rebuild.
+        // Otherwise, just update styles (handled by updateSelection).
+        const currentIds = new Set(messages.map(m => m.id));
+        const hasContentChanged = messages.length !== lastMessageIds.size || 
+                                  !messages.every(m => lastMessageIds.has(m.id));
 
-            const btn = document.createElement("button");
-            btn.className = `w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group ${isSelected ? "bg-white/10 border-indigo-500/30" : "bg-slate-900/40 border-transparent hover:bg-slate-800/50"}`;
-            btn.style.animation = `fadeIn 0.4s ease forwards ${idx * 0.05}s`;
-            btn.style.opacity = '0'; // For animation
+        if (hasContentChanged) {
+            list.innerHTML = "";
+            messages.forEach((m, idx) => {
+                const isNew = !lastMessageIds.has(m.id) && !isFirstLoad; 
+                const btn = document.createElement("button");
+                btn.id = `msg-btn-${m.id}`;
+                btn.onclick = () => loadMessage(m.id);
+                
+                // Base classes
+                const baseClass = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group";
+                // Determine initial select state (if rebuilding list)
+                const isSelected = selectedMessage && selectedMessage.id === m.id;
+                const activeClasses = isSelected 
+                    ? "bg-white/10 border-indigo-500/30" 
+                    : "bg-slate-900/40 border-transparent hover:bg-slate-800/50";
+                
+                btn.className = `${baseClass} ${activeClasses}`;
+                
+                // Animation for new items only
+                if (isNew || isFirstLoad) {
+                    btn.style.animation = `fadeIn 0.4s ease forwards ${Math.min(idx * 0.05, 0.5)}s`;
+                    btn.style.opacity = '0';
+                }
 
-            btn.innerHTML = `
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                             ${isNew ? `<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>` : ""}
-                            <h4 class="font-medium text-slate-200 truncate group-hover:text-white transition-colors text-sm">${escapeHtml(m.subject || "(No Subject)")}</h4>
+                btn.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                 ${isNew ? `<span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>` : ""}
+                                <h4 class="font-medium text-slate-200 truncate group-hover:text-white transition-colors text-sm">${escapeHtml(m.subject || "(No Subject)")}</h4>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1 truncate group-hover:text-slate-300 transition-colors capitalize">${escapeHtml(m.mail_from || "Unknown")}</p>
                         </div>
-                        <p class="text-xs text-slate-400 mt-1 truncate group-hover:text-slate-300 transition-colors capitalize">${escapeHtml(m.mail_from || "Unknown")}</p>
+                        <span class="text-[10px] text-slate-500 whitespace-nowrap font-mono tracking-tight">${formatDate(m.received_at).split(",")[1] || ""}</span>
                     </div>
-                    <span class="text-[10px] text-slate-500 whitespace-nowrap font-mono tracking-tight">${formatDate(m.received_at).split(",")[1] || ""}</span>
-                </div>
-            `;
-            btn.onclick = () => loadMessage(m.id);
-            list.appendChild(btn);
-        });
+                `;
+                list.appendChild(btn);
+            });
+            lastMessageIds = currentIds;
+        } else {
+             // Just update selection style safely if message count is same
+             updateSelectionStyle();
+        }
 
-        lastMessageIds = new Set(messages.map(m => m.id));
     } catch (e) {
         console.error(e);
-        showToast("Connection error", "error");
+        // Don't toast on background poll errors to avoid annoyance
+        if (!pollInterval) showToast("Connection error", "error");
     }
 };
 
-const loadMessage = async (id) => {
-    // UI Loading state
-    el("messagePlaceholder").classList.add("hidden");
-    el("messageContent").classList.remove("hidden");
-    el("messageContent").classList.add("opacity-50");
+const updateSelectionStyle = () => {
+    if (!selectedMessage) return;
+    const allBtns = document.querySelectorAll("#msgList button");
+    allBtns.forEach(btn => {
+        // Reset to default
+        if (btn.id === `msg-btn-${selectedMessage.id}`) {
+             btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-white/10 border-indigo-500/30";
+        } else {
+             btn.className = "w-full text-left p-4 rounded-2xl mb-2 transition-all duration-200 border group bg-slate-900/40 border-transparent hover:bg-slate-800/50";
+        }
+    });
+};
 
+const loadMessage = async (id) => {
+    // Smoother visual transition
+    const contentDiv = el("messageContent");
+    const placeholder = el("messagePlaceholder");
+    
+    // Immediate UI feedback
+    if (selectedMessage && selectedMessage.id === id) return; // Already loaded
+
+    // Optimistically update selection in list
+    selectedMessage = { id }; // partial update for styling
+    updateSelectionStyle();
+
+    // Show loading state gracefully
+    placeholder.classList.add("hidden");
+    contentDiv.classList.remove("hidden");
+    // Only reduce opacity slightly to indicate busy, not full flash
+    contentDiv.classList.add("opacity-60", "pointer-events-none");
+    
     try {
         const data = await apiGet(`/api/message/${encodeURIComponent(id)}`);
         selectedMessage = data.message;
-
+        
         // Populate details
         el("messageSubject").textContent = selectedMessage.subject || "(No Subject)";
         el("messageFrom").textContent = selectedMessage.mail_from || "Unknown";
@@ -158,15 +207,11 @@ const loadMessage = async (id) => {
         el("messageTime").textContent = formatDate(selectedMessage.received_at);
 
         renderBody();
-
-        // Refresh list to show selection highlighting
-        loadInbox();
-
-        // On mobile, maybe scroll to message view? (If we had that logic)
+        
     } catch (e) {
         showToast("Failed to load message", "error");
     } finally {
-        el("messageContent").classList.remove("opacity-50");
+        contentDiv.classList.remove("opacity-60", "pointer-events-none");
     }
 };
 
